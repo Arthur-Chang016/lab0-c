@@ -1,5 +1,5 @@
 /* Implementation of testing code for queue code */
-//test
+
 #include <getopt.h>
 #include <signal.h>
 #include <spawn.h>
