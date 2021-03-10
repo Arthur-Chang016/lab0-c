@@ -8,6 +8,21 @@
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 
 /*
+ * node used to store lists of list
+ */
+typedef struct _node {
+    struct _node *next;
+    list_ele_t *value;
+} node;
+
+// raw memory pool for node
+node nodepool[10000];
+// allocator for the pool, will increment each time
+node *allocptr = nodepool;
+
+#define nodealloc() (allocptr++)
+
+/*
  * Create empty queue.
  * Return NULL if could not allocate space.
  */
@@ -236,6 +251,29 @@ void q_reverse(queue_t *q)
 }
 
 /*
+ * Reverse elements in a list
+ * return the new head (original tail)
+ */
+list_ele_t *reverse(list_ele_t *l)
+{
+    if (l == NULL)
+        return NULL;
+
+    list_ele_t *fir = l, *sec = l->next, *thr = l->next->next, *tmp;
+    fir->next = NULL;
+    // reverse sec's next pointer
+    while (thr) {
+        sec->next = fir;
+        tmp = sec;
+        sec = thr;
+        thr = thr->next;
+        fir = tmp;
+    }
+    sec->next = fir;
+    return sec;
+}
+
+/*
  * merge 2 list with ascending order
  * return the head of the merged list
  */
@@ -284,6 +322,87 @@ list_ele_t *merge_sort(list_ele_t *l, int size)
 }
 
 /*
+ * to buttom up to merge all the lists into one
+ * by divide and conquer to reduce complexity
+ * return the final merged listnode
+ */
+list_ele_t *tim_merge(node *nodes)
+{
+    node *cur = nodes, *next = cur->next, **backslot, *tmp = cur;
+    // find backslot
+    while (tmp)
+        tmp = tmp->next;
+    backslot = &tmp;
+
+    // merge the head of two
+    while (next) {
+        list_ele_t *mer = merge_2list(cur->value, next->value);
+
+        // push back the new value
+        *backslot = nodealloc();
+        (*backslot)->value = mer;
+        (*backslot)->next = NULL;
+        backslot = &(*backslot)->next;
+
+        // update
+        cur = cur->next;
+        next = cur->next;
+    }
+
+    return cur->value;
+}
+
+/*
+ * tim sort.
+ * normal tim sort without threshold
+ * go up, then go down, then go up ...
+ */
+list_ele_t *tim_sort(list_ele_t *cur, int size)
+{
+    node *nodes = NULL, **slot = &nodes;
+    bool goup = true;
+    // split list into up, down sublists
+    list_ele_t *next = cur->next, *elehead = cur;
+    while (next) {
+        bool cmp = strcmp(cur->value, next->value) < 0;
+        if (goup) {
+            if (cmp) {  // continue to go up
+                cur = cur->next;
+            } else {  // exchange
+                cur->next = NULL;
+                cur = next;
+                node *newnode = *slot = nodealloc();
+                newnode->value = elehead;
+                elehead = next;
+                slot = &(newnode->next);
+                goup = goup ? false : true;
+            }
+        } else {         // now does down
+            if (!cmp) {  // continue to go down
+                cur = cur->next;
+            } else {  // exchange
+                cur->next = NULL;
+                cur = next;
+                node *newnode = *slot = nodealloc();
+                newnode->value = reverse(elehead);
+                elehead = next;
+                slot = &(newnode->next);
+                goup = goup ? false : true;
+            }
+        }
+        // cur = cur->next;
+        next = next->next;
+    }
+    // last one
+    node *newnode = *slot = nodealloc();
+    newnode->value = elehead;
+    *slot = NULL;  // let nodes to NULL terminate
+
+    // merge nodes
+    return tim_merge(nodes);
+}
+
+/*
  * Sort elements of queue in ascending order
  * No effect if q is NULL or empty. In addition, if q has only one
  * element, do nothing.
@@ -294,7 +413,7 @@ void q_sort(queue_t *q)
         return;
     }
 
-    q->head = merge_sort(q->head, q->size);
+    q->head = tim_sort(q->head, q->size);
     // find tail
     list_ele_t *tmp = q->head;
     while (tmp->next) {
