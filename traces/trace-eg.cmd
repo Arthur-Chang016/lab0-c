@@ -16,6 +16,8 @@ it bear
 reverse
 # See how long it is
 size
+# sort the queue
+sort
 # Delete queue.  Goes back to a NULL queue.
 free
 # Exit program

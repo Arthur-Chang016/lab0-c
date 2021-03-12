@@ -16,7 +16,7 @@ typedef struct _node {
 } node;
 
 // raw memory pool for node
-node nodepool[10000];
+node nodepool[300000];
 // allocator for the pool, will increment each time
 node *allocptr = nodepool;
 
@@ -29,9 +29,9 @@ node *allocptr = nodepool;
 queue_t *q_new()
 {
     queue_t *q = malloc(sizeof(queue_t));
-    if (q == NULL) {
+    if (q == NULL)
         return NULL;
-    }
+
     q->tail = q->head = NULL;
     q->size = 0;
     return q;
@@ -52,9 +52,9 @@ list_ele_t *free_ele(list_ele_t *node)
 /* Free all storage used by queue */
 void q_free(queue_t *q)
 {
-    if (q == NULL) {
+    if (q == NULL)
         return;
-    }
+
     list_ele_t *node = q->head;
     while (node) {
         node = free_ele(node);
@@ -96,9 +96,9 @@ char *strcopy(char *destination, const char *source)
  */
 bool q_insert_head(queue_t *q, char *s)
 {
-    if (q == NULL) {
+    if (q == NULL)
         return false;
-    }
+
     list_ele_t *newh;
     // allocate the buffer of list node
     newh = malloc(sizeof(list_ele_t));
@@ -183,9 +183,9 @@ bool q_insert_tail(queue_t *q, char *s)
  */
 bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
 {
-    if (q == NULL || q->size == 0) {
+    if (q == NULL || q->size == 0)
         return false;
-    }
+
     // to copy string
     int len = min(bufsize - 1, strlen(q->head->value));
     // sp = malloc(len + 1);
@@ -214,9 +214,8 @@ bool q_remove_head(queue_t *q, char *sp, size_t bufsize)
  */
 int q_size(queue_t *q)
 {
-    if (q == NULL) {
+    if (q == NULL)
         return 0;
-    }
     return q->size;
 }
 
@@ -229,9 +228,9 @@ int q_size(queue_t *q)
  */
 void q_reverse(queue_t *q)
 {
-    if (q == NULL || q->size == 0 || q->size == 1) {
+    if (q == NULL || q->size == 0 || q->size == 1)
         return;
-    }
+
     // swap head and tail
     list_ele_t *tmp = q->head;
     q->head = q->tail;
@@ -250,14 +249,33 @@ void q_reverse(queue_t *q)
     sec->next = fir;
 }
 
+void print_list(list_ele_t *l)
+{
+    printf("[ ");
+    while (l) {
+        printf("%s ", l->value);
+        l = l->next;
+    }
+    printf("]\n");
+}
+
+void print_tim(node *nodes)
+{
+    printf("nodes : \n");
+    while (nodes) {
+        print_list(nodes->value);
+        nodes = nodes->next;
+    }
+}
+
 /*
  * Reverse elements in a list
  * return the new head (original tail)
  */
 list_ele_t *reverse(list_ele_t *l)
 {
-    if (l == NULL)
-        return NULL;
+    if (l == NULL || l->next == NULL)
+        return l;
 
     list_ele_t *fir = l, *sec = l->next, *thr = l->next->next, *tmp;
     fir->next = NULL;
@@ -270,6 +288,8 @@ list_ele_t *reverse(list_ele_t *l)
         fir = tmp;
     }
     sec->next = fir;
+
+    // print_list(sec);
     return sec;
 }
 
@@ -292,11 +312,11 @@ list_ele_t *merge_2list(list_ele_t *l1, list_ele_t *l2)
             l2 = l2->next;
         }
     }
-    if (l1) {
+    if (l1)
         *slot = l1;
-    } else {
+    else
         *slot = l2;
-    }
+
     return ret;
 }
 
@@ -306,9 +326,9 @@ list_ele_t *merge_2list(list_ele_t *l1, list_ele_t *l2)
  */
 list_ele_t *merge_sort(list_ele_t *l, int size)
 {
-    if (size <= 1) {
+    if (size <= 1)
         return l;
-    }
+
     int size1 = size / 2, size2 = size - size1;  // size of left and right list
     list_ele_t *tmp = l;
     // split list into size1, size2
@@ -328,11 +348,10 @@ list_ele_t *merge_sort(list_ele_t *l, int size)
  */
 list_ele_t *tim_merge(node *nodes)
 {
-    node *cur = nodes, *next = cur->next, **backslot, *tmp = cur;
-    // find backslot
-    while (tmp)
-        tmp = tmp->next;
-    backslot = &tmp;
+    node *cur = nodes, *next = cur->next, **backslot = &cur;
+    // find backslot, it will point to the last NULL position
+    while (*backslot)
+        backslot = &(*backslot)->next;
 
     // merge the head of two
     while (next) {
@@ -341,11 +360,12 @@ list_ele_t *tim_merge(node *nodes)
         // push back the new value
         *backslot = nodealloc();
         (*backslot)->value = mer;
-        (*backslot)->next = NULL;
         backslot = &(*backslot)->next;
+        *backslot = NULL;
 
         // update
-        cur = cur->next;
+        cur = next->next;  // the last must have a thing, because backslot push
+                           // at back
         next = cur->next;
     }
 
@@ -390,14 +410,13 @@ list_ele_t *tim_sort(list_ele_t *cur, int size)
                 goup = goup ? false : true;
             }
         }
-        // cur = cur->next;
         next = next->next;
     }
     // last one
     node *newnode = *slot = nodealloc();
-    newnode->value = elehead;
+    newnode->value = goup ? elehead : reverse(elehead);
+    slot = &(*slot)->next;
     *slot = NULL;  // let nodes to NULL terminate
-
     // merge nodes
     return tim_merge(nodes);
 }
@@ -409,9 +428,8 @@ list_ele_t *tim_sort(list_ele_t *cur, int size)
  */
 void q_sort(queue_t *q)
 {
-    if (q == NULL || q->size == 0 || q->size == 1) {
+    if (q == NULL || q->size == 0 || q->size == 1)
         return;
-    }
 
     q->head = tim_sort(q->head, q->size);
     // find tail
@@ -420,4 +438,7 @@ void q_sort(queue_t *q)
         tmp = tmp->next;
     }
     q->tail = tmp;
+
+    // print_tim, to let it used
+    print_tim(NULL);
 }
